@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=Edge">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>거래처별 손익등급</title>
+<script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+<div class="wrap">
+  <div class="head">
+    <h1>2026 거래처별 손익등급</h1>
+    <div class="take" id="take">엑셀에서 데이터를 읽는 중입니다…</div>
+  </div>
+
+  <div class="navrow">
+    <div class="tabs" id="tabs">
+      <button type="button" data-tab="team" class="tab on">조직별 거래처</button>
+      <button type="button" data-tab="summary" class="tab">요약</button>
+      <button type="button" data-tab="rule" class="tab">등급 기준</button>
+      <button type="button" data-tab="excl" class="tab">제외 영업부서</button>
+    </div>
+    <div class="ctrl">
+      <span class="seg" id="modeSeg"><button type="button" data-mode="M">당월</button><button type="button" data-mode="C">누적</button></span>
+      <select id="monthSel" aria-label="기준 월"></select>
+      <button type="button" class="btn ghost" id="reload" title="엑셀 데이터를 다시 읽습니다">새로고침</button>
+    </div>
+  </div>
+
+  <div id="msg" class="msg" style="display:none"></div>
+
+  <!-- 조직별 거래처 -->
+  <div class="page" id="pg-team">
+    <div class="card slicer" id="slicer"></div>
+    <div class="row">
+      <div class="card col-kpi">
+        <h3><span id="teamTitle">손익</span> <span class="note" id="teamPath"></span></h3>
+        <div class="kpis" id="teamKpis"></div>
+      </div>
+      <div class="col-grades" id="teamGrades"></div>
+    </div>
+    <div class="card">
+      <div class="bar">
+        <h3 class="inline">거래처별 손익</h3>
+        <span class="chips" id="gradeChips"></span>
+      </div>
+      <div class="bar">
+        <span class="seg" id="topSeg"><button type="button" data-top="1">매출 상위 10곳</button><button type="button" data-top="0">전체</button></span>
+        <input type="text" id="search" placeholder="거래처명·코드 검색">
+        <button type="button" class="btn ghost" id="resetBtn">필터 초기화</button>
+        <button type="button" class="btn" id="exportBtn">시트로 내보내기</button>
+      </div>
+      <div class="note" id="tableNote"></div>
+      <div class="tablewrap"><table class="grid" id="custTable"><thead><tr id="custHead"></tr></thead><tbody id="custBody"></tbody></table></div>
+    </div>
+  </div>
+
+  <!-- 요약 -->
+  <div class="page" id="pg-summary" style="display:none">
+    <div class="row">
+      <div class="card col-kpi">
+        <h3>분석대상 전체 손익 <span class="note">TC·소매·소재·생두사업부 12개 영업부서</span></h3>
+        <div class="kpis" id="sumKpis"></div>
+      </div>
+      <div class="col-grades" id="sumGrades"></div>
+    </div>
+    <div class="row">
+      <div class="card col-half">
+        <h3>사업부별 등급 구성 <span class="note">매출 비중 · 막대를 누르면 그 조직으로 이동</span></h3>
+        <div class="legend" id="legend"></div>
+        <div id="stack"></div>
+      </div>
+      <div class="card col-wide">
+        <h3>사업부 · 영업부 · 영업부서별 등급 매트릭스 <span class="note">금액 단위: 억원 · 거래처수(매출 비중)</span></h3>
+        <div class="tablewrap"><table class="grid" id="matrix"><thead><tr>
+          <th class="l">조직</th><th>매출</th><th>매출총이익</th><th>매출총이익률</th><th>공헌이익률</th><th>직접이익률</th><th>영업이익률</th><th>거래처</th><th>A</th><th>B</th><th>C</th><th>D</th>
+        </tr></thead><tbody id="matrixBody"></tbody></table></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 등급 기준 -->
+  <div class="page" id="pg-rule" style="display:none">
+    <div class="row">
+      <div class="card col-half">
+        <h3>등급은 이렇게 나눕니다</h3>
+        <p class="note">거래처의 공헌이익률을 소속 영업부서의 기준선 3개와 비교합니다. 기준선은 영업부서 전체 손익으로 계산하며, 당월은 그 달, 누적은 1월부터 기준 월까지의 합계로 계산합니다.</p>
+        <table class="defs" id="defs"></table>
+      </div>
+      <div class="card col-wide">
+        <h3 id="bepTitle">영업부서별 기준선</h3>
+        <div class="tablewrap"><table class="grid" id="bepTable"><thead><tr>
+          <th class="l">사업부</th><th class="l">영업부서</th><th>매출(억원)</th><th>실적 공헌이익률</th><th>A 목표</th><th>B 영업이익 BEP</th><th>C 직접영업이익 BEP</th>
+        </tr></thead><tbody id="bepBody"></tbody></table></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 제외 영업부서 -->
+  <div class="page" id="pg-excl" style="display:none">
+    <div class="card">
+      <h3>거래처별 손익 대상이 아닌 영업부서</h3>
+      <p class="note">사업부 매핑에 없는 영업부서입니다. 등급 집계와 요약 수치에서 빠져 있습니다. 금액 단위: 억원</p>
+      <div class="tablewrap"><table class="grid"><thead><tr>
+        <th class="l">영업부서</th><th>거래처</th><th>매출</th><th>매출총이익</th><th>공헌이익</th><th>직접영업이익</th><th>영업이익</th><th>영업이익률</th>
+      </tr></thead><tbody id="exclBody"></tbody></table></div>
+    </div>
+  </div>
+</div>
+<script src="app.js"></script>
+</body>
+</html>
