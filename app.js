@@ -573,27 +573,28 @@
     var title = S.team + ' 거래처별 손익 · ' + periodLabel() + ' · 등급 ' + (S.gf === 'AB' ? 'A+B' : S.gf === 'CD' ? 'C+D' : S.gf) + (S.top ? ' · 매출 상위 10곳' : '') + (S.q ? ' · 검색 "' + S.q + '"' : '') + ' (금액 단위: 백만원)';
     var name = '손익등급_내보내기';
     var lastCol = String.fromCharCode(64 + head.length);
-    var write = function () {
-      return Excel.run(function (ctx) {
-        var ws = ctx.workbook.worksheets.add(name);
-        ws.getRange('A1').values = [[title]];
-        ws.getRange('A1').format.font.bold = true;
-        ws.getRange('A1').format.font.size = 12;
-        var rg = ws.getRange('A3:' + lastCol + (3 + vals.length - 1));
-        rg.numberFormat = nf;
-        rg.values = vals;
-        rg.format.font.name = '맑은 고딕';
-        var hd = ws.getRange('A3:' + lastCol + '3');
-        hd.format.font.bold = true; hd.format.font.color = '#FFFFFF'; hd.format.fill.color = '#1F3864';
-        ws.activate();
-        return ctx.sync();
-      });
-    };
-    // 같은 이름 시트가 있으면 먼저 지우고(없으면 오류 무시) 새로 쓴다
-    Excel.run(function (ctx) {
-      ctx.workbook.worksheets.getItem(name).delete();
+    var fill = function (ctx, ws) {
+      ws.getRange('A1').values = [[title]];
+      ws.getRange('A1').format.font.bold = true;
+      ws.getRange('A1').format.font.size = 12;
+      var rg = ws.getRange('A3:' + lastCol + (3 + vals.length - 1));
+      rg.numberFormat = nf;
+      rg.values = vals;
+      rg.format.font.name = '맑은 고딕';
+      var hd = ws.getRange('A3:' + lastCol + '3');
+      hd.format.font.bold = true; hd.format.font.color = '#FFFFFF'; hd.format.fill.color = '#1F3864';
+      ws.activate();
       return ctx.sync();
-    }).then(write, write).then(function () {
+    };
+    // 1) "손익등급_내보내기" 시트가 있으면 내용을 지우고 덮어쓴다 (통합 문서 구조를 잠가도 동작)
+    // 2) 없으면 새로 만든다
+    Excel.run(function (ctx) {
+      var ws = ctx.workbook.worksheets.getItem(name);
+      ws.getRange().clear();
+      return ctx.sync().then(function () { return fill(ctx, ws); });
+    }).then(null, function () {
+      return Excel.run(function (ctx) { return fill(ctx, ctx.workbook.worksheets.add(name)); });
+    }).then(function () {
       showMsg('"' + name + '" 시트에 ' + rows.length + '곳을 내보냈습니다. 저장하면 회사 문서보안이 적용됩니다.', true);
     }).catch(function (err) {
       showMsg('내보내지 못했습니다. ' + (err && err.message ? err.message : String(err)));
