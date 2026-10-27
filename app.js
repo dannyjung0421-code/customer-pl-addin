@@ -86,29 +86,33 @@
     return out;
   }
 
+  function readRange(sheet, addr) {
+    // 시트가 없거나 읽기 실패하면 null (엑셀 2016 호환: 시트 목록을 읽지 않고 바로 연다)
+    return Excel.run(function (ctx) {
+      var ws = ctx.workbook.worksheets.getItem(sheet);
+      var rg = addr ? ws.getRange(addr) : ws.getUsedRange();
+      rg.load('values');
+      return ctx.sync().then(function () { return rg.values; });
+    });
+  }
+
   function load() {
     showMsg('');
     $('take').innerHTML = '';
     $('take').appendChild(document.createTextNode('엑셀에서 데이터를 읽는 중입니다…'));
-    Excel.run(function (ctx) {
-      var sheets = ctx.workbook.worksheets;
-      sheets.load('items/name');
-      return ctx.sync().then(function () {
-        var names = {}, k;
-        for (k = 0; k < sheets.items.length; k++) names[sheets.items[k].name] = 1;
-        if (!names['거래처데이터']) throw new Error('이 파일에 "거래처데이터" 시트가 없습니다.');
-        var r1 = sheets.getItem('거래처데이터').getUsedRange(); r1.load('values');
-        var r2 = names['제외 영업부서'] ? sheets.getItem('제외 영업부서').getUsedRange() : null;
-        var r3 = names['기준선'] ? sheets.getItem('기준선').getRange('P2') : null;
-        if (r2) r2.load('values');
-        if (r3) r3.load('values');
-        return ctx.sync().then(function () {
-          build(r1.values, r2 ? r2.values : [], r3 ? r3.values[0][0] : null);
-        });
-      });
-    }).catch(function (err) {
+    var data = null, exv = [], tm = null;
+    readRange('거래처데이터', null).then(function (v) {
+      data = v;
+      return readRange('제외 영업부서', null).then(function (x) { exv = x; }, function () { exv = []; });
+    }).then(function () {
+      return readRange('기준선', 'P2').then(function (x) { tm = x[0][0]; }, function () { tm = null; });
+    }).then(function () {
+      build(data, exv, tm);
+    }, function (err) {
       $('take').innerHTML = '';
-      showMsg('데이터를 읽지 못했습니다. ' + (err && err.message ? err.message : String(err)));
+      var msg = err && err.message ? err.message : String(err);
+      if (!data) msg = '"거래처데이터" 시트를 읽지 못했습니다. 데이터 파일(거래처별손익_슬라이서)에서 열었는지 확인하세요. (' + msg + ')';
+      showMsg('데이터를 읽지 못했습니다. ' + msg);
     });
   }
 
@@ -569,26 +573,27 @@
     var title = S.team + ' 거래처별 손익 · ' + periodLabel() + ' · 등급 ' + (S.gf === 'AB' ? 'A+B' : S.gf === 'CD' ? 'C+D' : S.gf) + (S.top ? ' · 매출 상위 10곳' : '') + (S.q ? ' · 검색 "' + S.q + '"' : '') + ' (금액 단위: 백만원)';
     var name = '손익등급_내보내기';
     var lastCol = String.fromCharCode(64 + head.length);
-    Excel.run(function (ctx) {
-      var sheets = ctx.workbook.worksheets;
-      sheets.load('items/name');
-      return ctx.sync().then(function () {
-        for (var k = 0; k < sheets.items.length; k++) if (sheets.items[k].name === name) sheets.items[k].delete();
-        var ws = sheets.add(name);
+    var write = function () {
+      return Excel.run(function (ctx) {
+        var ws = ctx.workbook.worksheets.add(name);
         ws.getRange('A1').values = [[title]];
         ws.getRange('A1').format.font.bold = true;
         ws.getRange('A1').format.font.size = 12;
         var rg = ws.getRange('A3:' + lastCol + (3 + vals.length - 1));
         rg.numberFormat = nf;
         rg.values = vals;
+        rg.format.font.name = '맑은 고딕';
         var hd = ws.getRange('A3:' + lastCol + '3');
         hd.format.font.bold = true; hd.format.font.color = '#FFFFFF'; hd.format.fill.color = '#1F3864';
-        rg.format.font.name = '맑은 고딕';
-        rg.format.autofitColumns();
         ws.activate();
         return ctx.sync();
       });
-    }).then(function () {
+    };
+    // 같은 이름 시트가 있으면 먼저 지우고(없으면 오류 무시) 새로 쓴다
+    Excel.run(function (ctx) {
+      ctx.workbook.worksheets.getItem(name).delete();
+      return ctx.sync();
+    }).then(write, write).then(function () {
       showMsg('"' + name + '" 시트에 ' + rows.length + '곳을 내보냈습니다. 저장하면 회사 문서보안이 적용됩니다.', true);
     }).catch(function (err) {
       showMsg('내보내지 못했습니다. ' + (err && err.message ? err.message : String(err)));
