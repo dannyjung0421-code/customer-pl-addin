@@ -766,7 +766,13 @@
       $('reload').style.display = 'none';
       if ($('bigBtn')) $('bigBtn').style.display = 'none';
       loadFromStorage();
-    } else { load(); autoShow(); }
+    } else {
+      var ui = window.Office && Office.context && Office.context.ui;
+      var ok = !!(ui && ui.displayDialogAsync);
+      try { if (ok && Office.context.requirements && !Office.context.requirements.isSetSupported('DialogApi', '1.1')) ok = false; } catch (e) {}
+      if (!ok && $('bigBtn')) $('bigBtn').style.display = 'none';
+      load(); autoShow();
+    }
   }
   var started = false;
   function startOnce() { if (!started) { started = true; start(); } }
