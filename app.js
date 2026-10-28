@@ -760,7 +760,31 @@
       }
     } catch (e) { /* 지원하지 않는 버전이면 무시 */ }
   }
+  /* ---------------- 확대·축소 (좁은 작업창에서도 전체가 보이게) ---------------- */
+  var ZOOM = { mode: 'auto', value: 1 };
+  var DESIGN_WIDTH = 950; // 이 폭 기준으로 배치했으므로, 이보다 좁으면 자동으로 줄인다
+  function applyZoom() {
+    var w = document.documentElement.clientWidth || document.body.clientWidth || DESIGN_WIDTH;
+    var z = ZOOM.mode === 'auto' ? Math.min(1, Math.max(0.4, w / DESIGN_WIDTH)) : ZOOM.value;
+    z = Math.round(z * 100) / 100;
+    document.body.style.zoom = z;
+    var wrap = $('wrapper');
+    if (wrap) wrap.style.width = z < 1 ? Math.floor(w / z) + 'px' : '';
+    var lab = $('zoomLabel');
+    if (lab) { lab.innerHTML = ''; lab.appendChild(document.createTextNode(Math.round(z * 100) + '%')); }
+    ZOOM.value = z;
+  }
+  function bindZoom() {
+    $('zoomOut').addEventListener('click', function () { ZOOM.mode = 'manual'; ZOOM.value = Math.max(0.3, ZOOM.value - 0.1); applyZoom(); });
+    $('zoomIn').addEventListener('click', function () { ZOOM.mode = 'manual'; ZOOM.value = Math.min(1.5, ZOOM.value + 0.1); applyZoom(); });
+    $('zoomLabel').addEventListener('click', function () { ZOOM.mode = 'auto'; applyZoom(); });
+    var t = null;
+    window.addEventListener('resize', function () { if (t) clearTimeout(t); t = setTimeout(applyZoom, 150); });
+    applyZoom();
+  }
+
   function start() {
+    bindZoom();
     buildSlicer(); bind();
     if (DIALOG) {
       $('reload').style.display = 'none';

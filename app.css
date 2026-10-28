@@ -103,3 +103,8 @@ table.defs { border-collapse: collapse; width: 100%; font-size: 12px; }
 table.defs td { padding: 4px 6px; vertical-align: top; border-bottom: 1px solid #eef0f3; }
 table.defs td.k { font-weight: 700; white-space: nowrap; }
 table.defs td.v { color: #5f6673; }
+
+.zoom { display: inline-block; border: 1px solid #dfe2e8; border-radius: 6px; overflow: hidden; white-space: nowrap; }
+.zoom button { font: inherit; font-size: 12px; padding: 5px 8px; border: 0; background: #fff; color: #1b1f27; cursor: pointer; }
+.zoom button + button { border-left: 1px solid #dfe2e8; }
+#zoomLabel { min-width: 46px; color: #5f6673; }

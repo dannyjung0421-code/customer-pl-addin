@@ -6,10 +6,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>거래처별 손익등급</title>
 <script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
-<link rel="stylesheet" href="app.css?v=7">
+<link rel="stylesheet" href="app.css?v=8">
 </head>
 <body>
-<div class="wrap">
+<div class="wrap" id="wrapper">
   <div class="head">
     <h1>2026 거래처별 손익등급</h1>
     <div class="take" id="take">엑셀에서 데이터를 읽는 중입니다…</div>
@@ -25,6 +25,7 @@
     <div class="ctrl">
       <span class="seg" id="modeSeg"><button type="button" data-mode="M">당월</button><button type="button" data-mode="C">누적</button></span>
       <select id="monthSel" aria-label="기준 월"></select>
+      <span class="zoom"><button type="button" id="zoomOut" title="작게">－</button><button type="button" id="zoomLabel" title="누르면 창 크기에 자동 맞춤">100%</button><button type="button" id="zoomIn" title="크게">＋</button></span>
       <button type="button" class="btn ghost" id="reload" title="엑셀 데이터를 다시 읽습니다">새로고침</button>
       <button type="button" class="btn" id="bigBtn" title="대시보드를 큰 창으로 엽니다">크게 보기</button>
     </div>
@@ -110,6 +111,6 @@
     </div>
   </div>
 </div>
-<script src="app.js?v=7"></script>
+<script src="app.js?v=8"></script>
 </body>
 </html>
