@@ -632,7 +632,17 @@
     $('bepBody').addEventListener('click', goHandler);
   }
 
-  function start() { buildSlicer(); bind(); load(); }
+  function autoShow() {
+    // 이 파일을 다음에 열 때 작업창이 자동으로 열리도록 문서에 표시 (저장해야 반영)
+    try {
+      var st = Office.context.document.settings;
+      if (st && !st.get('Office.AutoShowTaskpaneWithDocument')) {
+        st.set('Office.AutoShowTaskpaneWithDocument', true);
+        st.saveAsync(function () {});
+      }
+    } catch (e) { /* 지원하지 않는 버전이면 무시 */ }
+  }
+  function start() { buildSlicer(); bind(); load(); autoShow(); }
   var started = false;
   function startOnce() { if (!started) { started = true; start(); } }
   if (window.Office) {

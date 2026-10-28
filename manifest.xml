@@ -1,9 +1,4 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!--
-  2026 거래처별 손익등급 - Excel 추가 기능 매니페스트
-  아래 BASE 주소의 dannyjung0421-code 를 본인 GitHub 아이디로 모두 바꿔서 저장하세요 (메모장: 편집 > 바꾸기).
-  BASE = https://dannyjung0421-code.github.io/customer-pl-addin
--->
 <OfficeApp xmlns="http://schemas.microsoft.com/office/appforoffice/1.1"
            xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
            xmlns:bt="http://schemas.microsoft.com/office/officeappbasictypes/1.0"
@@ -11,10 +6,10 @@
            xsi:type="TaskPaneApp">
   <Id>2d9dd163-b7a6-4d0f-9ff6-2850f74e445f</Id>
   <Version>1.0.0.0</Version>
-  <ProviderName>경영기획</ProviderName>
+  <ProviderName>&#xACBD;&#xC601;&#xAE30;&#xD68D;</ProviderName>
   <DefaultLocale>ko-KR</DefaultLocale>
-  <DisplayName DefaultValue="거래처별 손익등급"/>
-  <Description DefaultValue="열려 있는 통합 문서의 거래처데이터 시트로 거래처별 손익등급 대시보드를 보여줍니다."/>
+  <DisplayName DefaultValue="&#xAC70;&#xB798;&#xCC98;&#xBCC4; &#xC190;&#xC775;&#xB4F1;&#xAE09;"/>
+  <Description DefaultValue="&#xC5F4;&#xB824; &#xC788;&#xB294; &#xD1B5;&#xD569; &#xBB38;&#xC11C;&#xC758; &#xAC70;&#xB798;&#xCC98;&#xB370;&#xC774;&#xD130; &#xC2DC;&#xD2B8;&#xB85C; &#xAC70;&#xB798;&#xCC98;&#xBCC4; &#xC190;&#xC775;&#xB4F1;&#xAE09; &#xB300;&#xC2DC;&#xBCF4;&#xB4DC;&#xB97C; &#xBCF4;&#xC5EC;&#xC90D;&#xB2C8;&#xB2E4;."/>
   <IconUrl DefaultValue="https://dannyjung0421-code.github.io/customer-pl-addin/assets/icon-32.png"/>
   <HighResolutionIconUrl DefaultValue="https://dannyjung0421-code.github.io/customer-pl-addin/assets/icon-64.png"/>
   <SupportUrl DefaultValue="https://dannyjung0421-code.github.io/customer-pl-addin/"/>
@@ -58,7 +53,7 @@
                     <bt:Image size="80" resid="Icon.80"/>
                   </Icon>
                   <Action xsi:type="ShowTaskpane">
-                    <TaskpaneId>CustPLPane</TaskpaneId>
+                    <TaskpaneId>Office.AutoShowTaskpaneWithDocument</TaskpaneId>
                     <SourceLocation resid="Url.Pane"/>
                   </Action>
                 </Control>
@@ -79,13 +74,13 @@
         <bt:Url id="Url.Home" DefaultValue="https://dannyjung0421-code.github.io/customer-pl-addin/"/>
       </bt:Urls>
       <bt:ShortStrings>
-        <bt:String id="GetStarted.Title" DefaultValue="거래처별 손익등급을 설치했습니다"/>
-        <bt:String id="Group.Label" DefaultValue="손익등급"/>
-        <bt:String id="Button.Label" DefaultValue="거래처 손익등급"/>
+        <bt:String id="GetStarted.Title" DefaultValue="&#xAC70;&#xB798;&#xCC98;&#xBCC4; &#xC190;&#xC775;&#xB4F1;&#xAE09;&#xC744; &#xC124;&#xCE58;&#xD588;&#xC2B5;&#xB2C8;&#xB2E4;"/>
+        <bt:String id="Group.Label" DefaultValue="&#xC190;&#xC775;&#xB4F1;&#xAE09;"/>
+        <bt:String id="Button.Label" DefaultValue="&#xAC70;&#xB798;&#xCC98; &#xC190;&#xC775;&#xB4F1;&#xAE09;"/>
       </bt:ShortStrings>
       <bt:LongStrings>
-        <bt:String id="GetStarted.Desc" DefaultValue="홈 탭의 '거래처 손익등급' 버튼을 누르면 대시보드가 열립니다."/>
-        <bt:String id="Button.Tip" DefaultValue="열려 있는 파일의 거래처데이터 시트로 손익등급 대시보드를 엽니다."/>
+        <bt:String id="GetStarted.Desc" DefaultValue="&#xD648; &#xD0ED;&#xC758; '&#xAC70;&#xB798;&#xCC98; &#xC190;&#xC775;&#xB4F1;&#xAE09;' &#xBC84;&#xD2BC;&#xC744; &#xB204;&#xB974;&#xBA74; &#xB300;&#xC2DC;&#xBCF4;&#xB4DC;&#xAC00; &#xC5F4;&#xB9BD;&#xB2C8;&#xB2E4;."/>
+        <bt:String id="Button.Tip" DefaultValue="&#xC5F4;&#xB824; &#xC788;&#xB294; &#xD30C;&#xC77C;&#xC758; &#xAC70;&#xB798;&#xCC98;&#xB370;&#xC774;&#xD130; &#xC2DC;&#xD2B8;&#xB85C; &#xC190;&#xC775;&#xB4F1;&#xAE09; &#xB300;&#xC2DC;&#xBCF4;&#xB4DC;&#xB97C; &#xC5FD;&#xB2C8;&#xB2E4;."/>
       </bt:LongStrings>
     </Resources>
   </VersionOverrides>
