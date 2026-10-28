@@ -181,6 +181,7 @@
 
   /* ---------------- 크게 보기 (별도 창) ---------------- */
   var DIALOG = /[?&]mode=dialog/.test(window.location.search);
+  var WEB = !!window.__CUSTPL_DATA; // 엑셀 매크로가 만든 브라우저용 파일
   var STORE_KEY = 'custpl_bigview_v1';
   function stateCopy() {
     return { tab: S.tab, mode: S.mode, m: S.m, lv: S.lv, team: S.team, gf: S.gf, q: S.q, sort: S.sort, dir: S.dir, top: S.top };
@@ -728,7 +729,8 @@
           Office.context.ui.messageParent(JSON.stringify({ type: 'export', state: stateCopy() }));
           showMsg('엑셀의 "손익등급_내보내기" 시트에 내보냈습니다. 이 창을 닫으면 엑셀에서 확인할 수 있습니다.', true);
         } catch (e) { showMsg('내보내지 못했습니다. 작업창에서 "시트로 내보내기"를 눌러 주세요.'); }
-      } else exportSheet();
+      } else if (WEB) exportCsv();
+      else exportSheet();
     });
     if ($('bigBtn')) $('bigBtn').addEventListener('click', openBig);
     $('custHead').addEventListener('click', function (e) {
@@ -783,9 +785,51 @@
     applyZoom();
   }
 
+  /* ---------------- 브라우저 모드: CSV로 저장 ---------------- */
+  function csvCell(v) {
+    if (v === null || v === undefined) return '';
+    var t = String(v);
+    if (/[",\r\n]/.test(t)) t = '"' + t.replace(/"/g, '""') + '"';
+    return t;
+  }
+  function exportCsv() {
+    var rows = D.view || [], i, j;
+    var head = ['순위', '거래처', '고객코드', '영업부서', '등급', '매출(원)', '매출총이익(원)', '매출총이익률', '공헌이익(원)', '공헌이익률', '직접이익(원)', '직접이익률', '영업이익(원)', '영업이익률'];
+    var keys = [null, '고객사명', '고객코드', '영업부서', '등급', '매출', '매출총이익', '매출총이익률', '공헌이익', '공헌이익률', '직접이익', '직접이익률', '영업이익', '영업이익률'];
+    var lines = [head.join(',')];
+    for (i = 0; i < rows.length; i++) {
+      var line = [];
+      for (j = 0; j < keys.length; j++) {
+        var v = keys[j] === null ? i + 1 : rows[i][keys[j]];
+        if (keys[j] && /률$/.test(keys[j])) v = v === null || v === undefined ? '' : fixed(v * 100, 1) + '%';
+        else if (typeof v === 'number') v = Math.round(v);
+        line.push(csvCell(v));
+      }
+      lines.push(line.join(','));
+    }
+    var name = 'customer_pl_' + (S.mode === 'M' ? 'month' + S.m : 'ytd1-' + S.m) + '.csv'; // 일부 브라우저가 한글 파일명을 무시해서 영문
+    var blob = new Blob(['\ufeff' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8' });
+    if (window.navigator && window.navigator.msSaveOrOpenBlob) { window.navigator.msSaveOrOpenBlob(blob, name); }
+    else {
+      var a = document.createElement('a');
+      a.href = window.URL.createObjectURL(blob); a.download = name;
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    }
+    showMsg(S.team + ' ' + periodLabel() + ' 거래처 ' + rows.length + '곳을 "' + name + '" 파일로 저장했습니다 (다운로드 폴더, 엑셀로 열림).', true);
+  }
+
   function start() {
     bindZoom();
     buildSlicer(); bind();
+    if (WEB) {
+      $('reload').style.display = 'none';
+      if ($('bigBtn')) $('bigBtn').style.display = 'none';
+      $('exportBtn').innerHTML = ''; $('exportBtn').appendChild(document.createTextNode('CSV로 저장'));
+      var d = window.__CUSTPL_DATA;
+      if (d.made) document.title = '2026 거래처별 손익등급 (' + d.made + ' 기준)';
+      build(d.data, d.exv || [], d.tm);
+      return;
+    }
     if (DIALOG) {
       $('reload').style.display = 'none';
       if ($('bigBtn')) $('bigBtn').style.display = 'none';
@@ -800,7 +844,8 @@
   }
   var started = false;
   function startOnce() { if (!started) { started = true; start(); } }
-  if (window.Office) {
+  if (WEB) startOnce();
+  else if (window.Office) {
     Office.initialize = function () { startOnce(); };
     if (Office.onReady) Office.onReady(function () { startOnce(); });
   }
