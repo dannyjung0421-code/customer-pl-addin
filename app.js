@@ -107,6 +107,7 @@
     }).then(function () {
       return readRange('기준선', 'P2').then(function (x) { tm = x[0][0]; }, function () { tm = null; });
     }).then(function () {
+      D.raw = { data: compactRows(data), exv: exv, tm: tm };
       build(data, exv, tm);
     }, function (err) {
       $('take').innerHTML = '';
@@ -114,6 +115,63 @@
       if (!data) msg = '"거래처데이터" 시트를 읽지 못했습니다. 데이터 파일(거래처별손익_슬라이서)에서 열었는지 확인하세요. (' + msg + ')';
       showMsg('데이터를 읽지 못했습니다. ' + msg);
     });
+  }
+
+  // 크게 보기 창에 넘길 때 크기를 줄이려고 머리글 + 당월 행만 남긴다
+  function compactRows(values) {
+    var out = [], h = -1, i;
+    for (i = 0; i < Math.min(values.length, 10); i++) if (String(values[i][0]) === '기준') { h = i; break; }
+    if (h < 0) return values;
+    out.push(values[h]);
+    for (i = h + 1; i < values.length; i++) if (String(values[i][0]) === '당월') out.push(values[i]);
+    return out;
+  }
+
+  /* ---------------- 크게 보기 (별도 창) ---------------- */
+  var DIALOG = /[?&]mode=dialog/.test(window.location.search);
+  var STORE_KEY = 'custpl_bigview_v1';
+  function stateCopy() {
+    return { tab: S.tab, mode: S.mode, m: S.m, lv: S.lv, team: S.team, gf: S.gf, q: S.q, sort: S.sort, dir: S.dir, top: S.top };
+  }
+  function applyState(st) {
+    if (!st) return;
+    for (var k in st) if (st.hasOwnProperty(k)) S[k] = st[k];
+    $('search').value = S.q || '';
+  }
+  function openBig() {
+    if (!D.raw) { showMsg('데이터를 먼저 읽어야 합니다. 새로고침을 눌러 주세요.'); return; }
+    var ui = window.Office && Office.context && Office.context.ui;
+    if (!ui || !ui.displayDialogAsync) {
+      showMsg('이 엑셀 버전은 크게 보기를 지원하지 않습니다. 작업창 맨 위 제목줄을 엑셀 밖으로 끌어내 분리한 뒤 창 크기를 키워 주세요.');
+      return;
+    }
+    try {
+      window.localStorage.setItem(STORE_KEY, JSON.stringify({ data: D.raw.data, exv: D.raw.exv, tm: D.raw.tm, state: stateCopy() }));
+    } catch (e) {
+      showMsg('크게 보기를 열 수 없습니다 (브라우저 저장 공간 사용 불가). 작업창 제목줄을 끌어내 창을 키워 주세요.');
+      return;
+    }
+    var url = window.location.href.split('#')[0].split('?')[0] + '?mode=dialog&v=5';
+    ui.displayDialogAsync(url, { height: 95, width: 95 }, function (res) {
+      if (res.status === 'failed') { showMsg('크게 보기를 열지 못했습니다. ' + (res.error && res.error.message ? res.error.message : '')); return; }
+      var dlg = res.value;
+      dlg.addEventHandler(Office.EventType.DialogMessageReceived, function (arg) {
+        var msg = null;
+        try { msg = JSON.parse(arg.message); } catch (e) { return; }
+        if (msg && msg.type === 'export') {
+          applyState(msg.state); S.tab = 'team'; render(); exportSheet();
+        }
+      });
+    });
+  }
+  function loadFromStorage() {
+    var p = null;
+    try { p = JSON.parse(window.localStorage.getItem(STORE_KEY)); } catch (e) { p = null; }
+    if (!p || !p.data) { showMsg('화면 데이터를 찾지 못했습니다. 이 창을 닫고 작업창에서 "크게 보기"를 다시 눌러 주세요.'); return; }
+    build(p.data, p.exv || [], p.tm);
+    applyState(p.state);
+    if (S.m > S.maxM) S.m = S.maxM;
+    render();
   }
 
   function build(values, exValues, tm) {
@@ -612,7 +670,15 @@
     $('topSeg').addEventListener('click', function (e) { var b = up(e.target, 'data-top', this); if (b) { S.top = b.getAttribute('data-top') === '1'; setOn($('topSeg'), 'data-top', S.top ? '1' : '0'); renderTable(); } });
     $('search').addEventListener('keyup', function () { S.q = this.value.replace(/^\s+|\s+$/g, ''); renderTable(); });
     $('resetBtn').addEventListener('click', function () { resetTable(); renderTeam(); });
-    $('exportBtn').addEventListener('click', exportSheet);
+    $('exportBtn').addEventListener('click', function () {
+      if (DIALOG) {
+        try {
+          Office.context.ui.messageParent(JSON.stringify({ type: 'export', state: stateCopy() }));
+          showMsg('엑셀의 "손익등급_내보내기" 시트에 내보냈습니다. 이 창을 닫으면 엑셀에서 확인할 수 있습니다.', true);
+        } catch (e) { showMsg('내보내지 못했습니다. 작업창에서 "시트로 내보내기"를 눌러 주세요.'); }
+      } else exportSheet();
+    });
+    if ($('bigBtn')) $('bigBtn').addEventListener('click', openBig);
     $('custHead').addEventListener('click', function (e) {
       var th = up(e.target, 'data-col', this); if (!th) return;
       var k = th.getAttribute('data-col');
@@ -642,7 +708,14 @@
       }
     } catch (e) { /* 지원하지 않는 버전이면 무시 */ }
   }
-  function start() { buildSlicer(); bind(); load(); autoShow(); }
+  function start() {
+    buildSlicer(); bind();
+    if (DIALOG) {
+      $('reload').style.display = 'none';
+      if ($('bigBtn')) $('bigBtn').style.display = 'none';
+      loadFromStorage();
+    } else { load(); autoShow(); }
+  }
   var started = false;
   function startOnce() { if (!started) { started = true; start(); } }
   if (window.Office) {
