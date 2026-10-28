@@ -96,12 +96,64 @@
     });
   }
 
+  function colName(n) { // 0 -> A
+    var s = ''; n += 1;
+    while (n > 0) { var m = (n - 1) % 26; s = String.fromCharCode(65 + m) + s; n = Math.floor((n - 1) / 26); }
+    return s;
+  }
+  var NEED = ['기준', '월', '사업부', '영업부', '영업부서', '고객코드', '고객사명'].concat(F);
+  // 거래처데이터에서 "당월" 행과 필요한 열만 읽는다 (누적 행·계산 열은 건너뜀)
+  function readData() {
+    var info = {};
+    return Excel.run(function (ctx) {
+      var ws = ctx.workbook.worksheets.getItem('거래처데이터');
+      var used = ws.getUsedRange();
+      used.load('rowCount,columnCount');
+      return ctx.sync().then(function () {
+        info.rows = used.rowCount; info.cols = used.columnCount;
+        var head = ws.getRange('A1:' + colName(info.cols - 1) + Math.min(10, info.rows));
+        var colA = ws.getRange('A1:A' + info.rows);
+        head.load('values'); colA.load('values');
+        return ctx.sync().then(function () {
+          var hv = head.values, av = colA.values, h = -1, i, j;
+          for (i = 0; i < hv.length; i++) if (String(hv[i][0]) === '기준') { h = i; break; }
+          if (h < 0) throw new Error('거래처데이터 시트 첫 열에 "기준" 머리글이 없습니다.');
+          var idx = {}, minC = 999, maxC = -1;
+          for (j = 0; j < hv[h].length; j++) idx[String(hv[h][j])] = j;
+          for (j = 0; j < NEED.length; j++) {
+            if (idx[NEED[j]] === undefined) throw new Error('거래처데이터 시트에 "' + NEED[j] + '" 열이 없습니다.');
+            if (idx[NEED[j]] < minC) minC = idx[NEED[j]];
+            if (idx[NEED[j]] > maxC) maxC = idx[NEED[j]];
+          }
+          var first = -1, last = -1;
+          for (i = h + 1; i < av.length; i++) if (String(av[i][0]) === '당월') { if (first < 0) first = i; last = i; }
+          if (first < 0) throw new Error('거래처데이터 시트에 "당월" 행이 없습니다.');
+          // 당월 행이 한 구간에 모여 있으면 그 구간만, 아니면 처음~끝 구간을 읽고 거른다
+          var block = ws.getRange(colName(minC) + (first + 1) + ':' + colName(maxC) + (last + 1));
+          block.load('values');
+          return ctx.sync().then(function () {
+            var out = [], hdr = [], k, r;
+            for (j = minC; j <= maxC; j++) hdr.push(hv[h][j]);
+            out.push(hdr);
+            var bv = block.values;
+            for (k = 0; k < bv.length; k++) { r = bv[k]; if (String(r[idx['기준'] - minC]) === '당월') out.push(r); }
+            if (minC !== idx['기준']) { // 기준 열이 맨 앞이 아니면 맨 앞으로 옮긴다 (tableFrom 규칙)
+              var c0 = idx['기준'] - minC;
+              for (k = 0; k < out.length; k++) { var v = out[k].splice(c0, 1)[0]; out[k].unshift(v); }
+            }
+            return out;
+          });
+        });
+      });
+    });
+  }
+
   function load() {
     showMsg('');
     $('take').innerHTML = '';
     $('take').appendChild(document.createTextNode('엑셀에서 데이터를 읽는 중입니다…'));
     var data = null, exv = [], tm = null;
-    readRange('거래처데이터', null).then(function (v) {
+    readData().then(function (v) {
       data = v;
       return readRange('제외 영업부서', null).then(function (x) { exv = x; }, function () { exv = []; });
     }).then(function () {
